@@ -37,41 +37,72 @@
 ## 2. System Architecture
 
 ```mermaid
-graph TD
-    subgraph Client Tier
-        Browser["Responsive Web Browser (Mobile / Tablet / Desktop)"]
-        SwingApp["Modern Swing Admin Panel (FlatLaf Desktop UI)"]
-        SocketClient["Inventory Socket Client (java.net CLI)"]
-        RmiClient["Distributed RMI Client"]
+flowchart TD
+    subgraph Clients["1. Client Tier"]
+        Browser["Responsive Web Browser<br/>(Mobile & Desktop Storefront)"]
+        SwingApp["Modern Swing Admin Panel<br/>(FlatLaf Desktop UI)"]
+        SocketClient["Inventory Socket Client<br/>(java.net CLI)"]
+        RmiClient["Distributed RMI Client<br/>(Remote Interface)"]
     end
 
-    subgraph Production Application Layer
-        subgraph Tomcat Container (Port 8080)
-            Filters["Security Filters (AuthFilter, AdminFilter, EncodingFilter)"]
-            Controllers["Jakarta Servlets (Cart, Catalog, Checkout, Orders, Auth)"]
-            JSPViews["JSP 3.1 Views & Tag Files (Bootstrap 5.3 + Glassmorphism)"]
-            Services["Transactional Services (CheckoutService, ProductService)"]
-            DAOs["Data Access Objects (UserDAO, ProductDAO, OrderDAO)"]
-            Pool["HikariCP Connection Pool"]
-        end
-
-        subgraph Background Distributed Services
-            RmiServer["Java RMI Registry & Service (Port 1099)"]
-            SocketServer["TCP java.net Socket Server (Port 9090)"]
-        end
+    subgraph AppServer["2. Application Tier (Tomcat 10.1)"]
+        Filters["Security & Encoding Filters"]
+        Controllers["Jakarta Servlets Controllers"]
+        JSPViews["JSP 3.1 Views & Tag Files"]
+        Services["Transactional Services"]
+        DAOs["Data Access Layer (DAO)"]
+        Pool["HikariCP Connection Pool"]
     end
 
-    subgraph Persistence Layer
-        DB[("Relational Database: Embedded H2 or MySQL 8.0")]
+    subgraph Daemons["3. Background Services"]
+        RmiServer["Java RMI Registry & Service<br/>(Port 1099)"]
+        SocketServer["TCP Socket Server Daemon<br/>(Port 9090)"]
     end
 
-    Browser -->|HTTP / HTTPS Port 8080| Filters
-    Filters --> Controllers --> Services --> DAOs --> Pool --> DB
+    subgraph Persistence["4. Persistence Layer"]
+        DB[("Database<br/>(Embedded H2 / MySQL 8.0)")]
+    end
+
+    Browser --> Filters
+    Filters --> Controllers
     Controllers --> JSPViews
+    Controllers --> Services
+    Services --> DAOs
+    DAOs --> Pool
+    Pool --> DB
 
-    SwingApp -->|Direct DAO / JDBC Pool| DB
-    RmiClient -->|RMI Protocol Port 1099| RmiServer --> DB
-    SocketClient -->|TCP Socket Port 9090| SocketServer --> DB
+    SwingApp --> DAOs
+    RmiClient --> RmiServer
+    RmiServer --> DAOs
+    SocketClient --> SocketServer
+    SocketServer --> DAOs
+```
+
+### Visual Architecture Flow
+```
++-----------------------------------------------------------------------------------+
+|                                  CLIENT TIER                                      |
+|  +--------------------+  +--------------------+  +-------------+  +------------+  |
+|  | Web Browser (Store)|  | Swing Admin (Admin)|  | Socket CLI  |  | RMI Client |  |
+|  +---------+----------+  +---------+----------+  +------+------+  +-----+------+  |
++------------|-----------------------|--------------------|---------------|---------+
+             | HTTP (8080)           | Direct DAO / JDBC  | TCP (9090)    | RMI (1099)
+             v                       |                    v               v
++---------------------------------+  |             +--------------+ +---------------+
+|       TOMCAT 10.1 WEB APP       |  |             | Socket Server| |  RMI Registry |
+|  Filters -> Servlets -> Services|  |             +-------+------+ +-------+-------+
+|  JSP Views & Tags       |       |  |                     |                |
+|                         v       |  |                     |                |
+|                    DAOs (Layer) <---+---------------------+----------------+
+|                         |
+|                         v
+|               HikariCP Connection Pool
++-------------------------+---------------------------------------------------------+
+                          |
+                          v
+         +----------------------------------+
+         | PERSISTENCE: H2 / MySQL 8.0 DB   |
+         +----------------------------------+
 ```
 
 ---
@@ -80,16 +111,16 @@ graph TD
 
 | RTU Syllabus Unit | Concept Implemented | Implementation Location in QuickKart |
 | :--- | :--- | :--- |
-| **Unit 1: Core Servlets** | Servlet Lifecycle, `HttpServletRequest`, `HttpServletResponse`, Session Tracking | [`CartServlet.java`](file:///quickkart-web/src/main/java/com/quickkart/web/controller/CartServlet.java), [`AuthServlet.java`](file:///quickkart-web/src/main/java/com/quickkart/web/controller/AuthServlet.java) |
-| **Unit 2: Servlet Filters & Listeners** | `Filter`, `FilterChain`, `HttpSessionListener`, `ServletContextListener` | [`AuthenticationFilter.java`](file:///quickkart-web/src/main/java/com/quickkart/web/filter/AuthenticationFilter.java), [`AppContextListener.java`](file:///quickkart-web/src/main/java/com/quickkart/web/listener/AppContextListener.java) |
-| **Unit 3: JavaServer Pages (JSP)** | Scriptlets, Declarations, Directives, Expressions, Action Tags | [`traditional-jsp.jsp`](file:///quickkart-web/src/main/webapp/syllabus/traditional-jsp.jsp), [`index.jsp`](file:///quickkart-web/src/main/webapp/index.jsp) |
-| **Unit 4: JSTL & Custom Tags** | JSTL Core, Formatting, XML Transformation, SQL Demo, Tag Files | [`productCard.tag`](file:///quickkart-web/src/main/webapp/WEB-INF/tags/productCard.tag), [`jstl-xml.jsp`](file:///quickkart-web/src/main/webapp/syllabus/jstl-xml.jsp) |
-| **Unit 5: JDBC & Connection Pools** | PreparedStatements, HikariCP, Transactions, ACID rollbacks | [`DBConnectionPool.java`](file:///quickkart-dao/src/main/java/com/quickkart/dao/db/DBConnectionPool.java), [`OrderDAOImpl.java`](file:///quickkart-dao/src/main/java/com/quickkart/dao/impl/OrderDAOImpl.java) |
-| **Unit 6: Java Swing GUI** | Swing MVC, Layouts, Pluggable Look and Feel (FlatLaf), `JTable` | [`MainSwingAdmin.java`](file:///quickkart-swing-admin/src/main/java/com/quickkart/swing/MainSwingAdmin.java), [`AdminDashboardFrame.java`](file:///quickkart-swing-admin/src/main/java/com/quickkart/swing/view/AdminDashboardFrame.java) |
-| **Unit 7: Networking (`java.net`)** | `ServerSocket`, `Socket`, Object Serialization over TCP | [`InventoryServer.java`](file:///quickkart-network/src/main/java/com/quickkart/network/server/InventoryServer.java), [`InventoryClient.java`](file:///quickkart-network/src/main/java/com/quickkart/network/client/InventoryClient.java) |
-| **Unit 8: Distributed Computing (RMI)** | `Remote` interface, `UnicastRemoteObject`, `LocateRegistry` | [`InventoryRemoteService.java`](file:///quickkart-rmi/src/main/java/com/quickkart/rmi/service/InventoryRemoteService.java), [`RmiServerLauncher.java`](file:///quickkart-rmi/src/main/java/com/quickkart/rmi/server/RmiServerLauncher.java) |
-| **Unit 9: Internationalization (i18n)** | `ResourceBundle`, `Locale`, Multi-lingual (English & Hindi) | [`traditional-jsp.jsp`](file:///quickkart-web/src/main/webapp/syllabus/traditional-jsp.jsp), `messages_hi.properties` |
-| **Unit 10: JNDI & DataSource** | Context lookup, DataSource resolution in Tomcat | [`jndi-demo.jsp`](file:///quickkart-web/src/main/webapp/syllabus/jndi-demo.jsp) |
+| **Unit 1: Core Servlets** | Servlet Lifecycle, `HttpServletRequest`, `HttpServletResponse`, Session Tracking | [`CartServlet.java`](quickkart-web/src/main/java/com/quickkart/web/controller/CartServlet.java), [`AuthServlet.java`](quickkart-web/src/main/java/com/quickkart/web/controller/AuthServlet.java) |
+| **Unit 2: Servlet Filters & Listeners** | `Filter`, `FilterChain`, `HttpSessionListener`, `ServletContextListener` | [`AuthenticationFilter.java`](quickkart-web/src/main/java/com/quickkart/web/filter/AuthenticationFilter.java), [`AppContextListener.java`](quickkart-web/src/main/java/com/quickkart/web/listener/AppContextListener.java) |
+| **Unit 3: JavaServer Pages (JSP)** | Scriptlets, Declarations, Directives, Expressions, Action Tags | [`traditional-jsp.jsp`](quickkart-web/src/main/webapp/syllabus/traditional-jsp.jsp), [`index.jsp`](quickkart-web/src/main/webapp/index.jsp) |
+| **Unit 4: JSTL & Custom Tags** | JSTL Core, Formatting, XML Transformation, SQL Demo, Tag Files | [`productCard.tag`](quickkart-web/src/main/webapp/WEB-INF/tags/productCard.tag), [`jstl-xml.jsp`](quickkart-web/src/main/webapp/syllabus/jstl-xml.jsp) |
+| **Unit 5: JDBC & Connection Pools** | PreparedStatements, HikariCP, Transactions, ACID rollbacks | [`DBConnectionPool.java`](quickkart-dao/src/main/java/com/quickkart/dao/db/DBConnectionPool.java), [`OrderDAOImpl.java`](quickkart-dao/src/main/java/com/quickkart/dao/impl/OrderDAOImpl.java) |
+| **Unit 6: Java Swing GUI** | Swing MVC, Layouts, Pluggable Look and Feel (FlatLaf), `JTable` | [`MainSwingAdmin.java`](quickkart-swing-admin/src/main/java/com/quickkart/swing/MainSwingAdmin.java), [`AdminDashboardFrame.java`](quickkart-swing-admin/src/main/java/com/quickkart/swing/view/AdminDashboardFrame.java) |
+| **Unit 7: Networking (`java.net`)** | `ServerSocket`, `Socket`, Object Serialization over TCP | [`InventoryServer.java`](quickkart-network/src/main/java/com/quickkart/network/server/InventoryServer.java), [`InventoryClient.java`](quickkart-network/src/main/java/com/quickkart/network/client/InventoryClient.java) |
+| **Unit 8: Distributed Computing (RMI)** | `Remote` interface, `UnicastRemoteObject`, `LocateRegistry` | [`InventoryRemoteService.java`](quickkart-rmi/src/main/java/com/quickkart/rmi/service/InventoryRemoteService.java), [`RmiServerLauncher.java`](quickkart-rmi/src/main/java/com/quickkart/rmi/server/RmiServerLauncher.java) |
+| **Unit 9: Internationalization (i18n)** | `ResourceBundle`, `Locale`, Multi-lingual (English & Hindi) | [`traditional-jsp.jsp`](quickkart-web/src/main/webapp/syllabus/traditional-jsp.jsp), `messages_hi.properties` |
+| **Unit 10: JNDI & DataSource** | Context lookup, DataSource resolution in Tomcat | [`jndi-demo.jsp`](quickkart-web/src/main/webapp/syllabus/jndi-demo.jsp) |
 
 ---
 
