@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9"/>
+      <stop offset="100%" stop-color="#e2e8f0"/>
+    </linearGradient>
+    <linearGradient id="primary" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="450" fill="url(#bg)"/>
+  <circle cx="300" cy="200" r="70" fill="url(#primary)" opacity="0.1"/>
+  <!-- Shopping Bag Icon -->
+  <path d="M280 170 C280 155, 290 145, 300 145 C310 145, 320 155, 320 170" fill="none" stroke="#2563eb" stroke-width="6" stroke-linecap="round"/>
+  <rect x="260" y="170" width="80" height="70" rx="12" fill="#2563eb"/>
+  <circle cx="300" cy="205" r="8" fill="#ffffff"/>
+  <text x="300" y="300" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700" fill="#1e293b" text-anchor="middle">QuickKart Premium</text>
+  <text x="300" y="325" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" fill="#64748b" text-anchor="middle">Verified Product Image</text>
+</svg>

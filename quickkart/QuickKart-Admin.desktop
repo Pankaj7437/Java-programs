@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=QuickKart Desktop Admin
+GenericName=QuickKart Administration
+Comment=Launch QuickKart Desktop Administration Console
+Exec=/home/devops-user/Downloads/java-project/run-swing-admin.sh
+Icon=/home/devops-user/Downloads/quickkart-icon.png
+Terminal=false
+Categories=Office;Development;
+StartupNotify=true
