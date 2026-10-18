@@ -1,9 +1,7 @@
-name: QuickKart CI/CD - Build, Containerize & Deploy to Azure VM
+name: QuickKart CI/CD - Build & Deploy to Azure VM
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
     branches: [ "main" ]
   workflow_dispatch:
 
@@ -11,106 +9,79 @@ permissions:
   contents: read
   packages: write
 
+env:
+  REGISTRY: ghcr.io
+  # Image name must be strictly lowercase for GHCR
+  IMAGE_NAME_WEB: pankaj7437/java-programs/quickkart-web
+
 jobs:
   # ============================================================================
-  # STAGE 1: BUILD, LINT & UNIT TEST
+  # STAGE 1: BUILD & PUSH DOCKER IMAGE IN GITHUB CLOUD
   # ============================================================================
-  build-and-test:
-    name: Build & Verify Multi-Module Application
+  build-and-push:
+    name: Build & Push QuickKart Docker Image
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out Repository
         uses: actions/checkout@v4
 
-      - name: Setup Eclipse Temurin JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-          cache: 'maven'
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Compile and Package Artifacts
-        run: |
-          mvn clean package -DskipTests=false
-
-      - name: Archive WAR Artifact
-        uses: actions/upload-artifact@v4
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          name: quickkart-web-war
-          path: quickkart-web/target/quickkart-web.war
-          retention-days: 7
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push QuickKart Web Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./quickkart
+          file: ./quickkart/docker/Dockerfile.web
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WEB }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # ============================================================================
-  # STAGE 2: CONTINUOUS DEPLOYMENT TO AZURE VIRTUAL MACHINE
+  # STAGE 2: CONTINUOUS DEPLOYMENT TO AZURE VM
   # ============================================================================
-  deploy-to-azure:
-    name: Deploy to Azure Ubuntu Virtual Machine
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+  deploy:
+    name: Deploy QuickKart Stack to Azure VM
+    needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out Repository
         uses: actions/checkout@v4
 
-      - name: Setup SSH Connection to Azure VM
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Copy docker compose and database files to Azure VM
+        uses: appleboy/scp-action@v0.1.7
         with:
-          ssh-private-key: ${{ secrets.AZURE_SSH_KEY }}
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          source: "quickkart/docker-compose.yml,quickkart/database"
+          target: "~/quickkart"
+          strip_components: 1
 
-      - name: Deploy via Docker Compose on Azure Host
-        env:
-          HOST: ${{ secrets.AZURE_VM_HOST }}
-          USER: ${{ secrets.AZURE_VM_USER }}
-          DB_ROOT_PASS: ${{ secrets.DB_ROOT_PASSWORD }}
-          DB_USER_PASS: ${{ secrets.DB_PASSWORD }}
-        run: |
-          echo "Connecting to Azure VM at $HOST..."
-          ssh -o StrictHostKeyChecking=no $USER@$HOST << 'EOF'
+      - name: Deploy QuickKart Stack on Azure VM via Docker Compose
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_KEY }}
+          script: |
             set -e
-            APP_DIR="/opt/quickkart"
-            echo "=== [1/5] Ensuring Application Directory exists at $APP_DIR ==="
-            sudo mkdir -p $APP_DIR
-            sudo chown -R $USER:$USER $APP_DIR
+            cd ~/quickkart
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker image prune -f
 
-            cd $APP_DIR
-
-            echo "=== [2/5] Updating Repository Source Code ==="
-            if [ -d ".git" ]; then
-              git fetch origin main
-              git reset --hard origin/main
-            else
-              git clone https://github.com/${{ github.repository }}.git .
-            fi
-
-            echo "=== [3/5] Writing Environment Configuration ==="
-            cat << ENV_EOF > docker/.env
-          DB_NAME=quickkart
-          DB_USER=quickkart_user
-          DB_PASSWORD=$DB_USER_PASS
-          DB_ROOT_PASSWORD=$DB_ROOT_PASS
-          ENV_EOF
-
-            echo "=== [4/5] Launching Multi-Container Stack via Docker Compose ==="
-            cd docker
-            docker compose down --remove-orphans || true
-            docker compose up -d --build
-
-            echo "=== [5/5] Polling Ingress Health Check ==="
-            TIMEOUT=60
-            COUNT=0
-            until curl -s -f http://localhost/ > /dev/null || [ $COUNT -eq $TIMEOUT ]; do
-              echo "Waiting for Tomcat and MySQL containers to report healthy ($COUNT/$TIMEOUT s)..."
-              sleep 5
-              COUNT=$((COUNT + 5))
-            done
-
-            if [ $COUNT -ge $TIMEOUT ]; then
-              echo "CRITICAL: Healthcheck timed out! Container logs:"
-              docker compose logs --tail=50
-              exit 1
-            fi
-
-            echo "SUCCESS: QuickKart is live and serving traffic on Azure VM!"
-          EOF
+            echo "=== Checking running containers ==="
+            docker compose ps
+            echo "=== QuickKart Deployment Completed! ==="
