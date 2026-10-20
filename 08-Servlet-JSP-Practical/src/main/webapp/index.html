@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Experiment 08 - Servlet &amp; JSP Integration</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding: 3rem; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; max-width: 600px; width: 100%; padding: 2.5rem; text-align: center; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.4); }
+        h1 { font-size: 1.8rem; color: #60a5fa; margin-bottom: 0.75rem; }
+        p { color: var(--text-muted); font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; }
+        a.btn { display: inline-block; padding: 0.8rem 1.8rem; background: var(--primary); color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1rem; transition: transform 0.2s, background 0.2s; }
+        a.btn:hover { background: #1d4ed8; transform: translateY(-2px); }
+        .info { margin-top: 2rem; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Servlet &amp; JSP MVC Web Flow</h1>
+        <p>Welcome to Experiment 08. This laboratory module demonstrates decoupling business controller processing from HTML presentation views by combining Jakarta Servlets as Controllers and JavaServer Pages (JSP) as Views with Expression Language (EL).</p>
+        
+        <a class="btn" href="student.jsp">Launch Student Registration Form &rarr;</a>
+
+        <div class="info">
+            Architecture: <code>student.jsp</code> (View Form) &rarr; <code>StudentServlet</code> (Controller) &rarr; <code>result.jsp</code> (View Result)
+        </div>
+    </div>
+</body>
+</html>

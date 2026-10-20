@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Experiment 07 - Java Servlets, Filters &amp; Listeners</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding: 2rem; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .container { max-width: 900px; width: 100%; }
+        header { text-align: center; margin-bottom: 2rem; }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; color: #60a5fa; }
+        p.subtitle { color: var(--text-muted); font-size: 1rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 1.5rem; }
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
+        .card h2 { font-size: 1.25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; color: #38bdf8; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.35rem; }
+        input[type="text"], input[type="password"] {
+            width: 100%; padding: 0.65rem 0.85rem; border-radius: 6px; border: 1px solid var(--border);
+            background: #0f172a; color: var(--text); font-size: 0.95rem; outline: none; transition: border 0.2s;
+        }
+        input[type="text"]:focus, input[type="password"]:focus { border-color: var(--primary); }
+        button {
+            width: 100%; padding: 0.75rem; border: none; border-radius: 6px; background: var(--primary);
+            color: #fff; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 0.95rem;
+        }
+        button:hover { background: var(--primary-hover); }
+        .features-list { list-style: none; font-size: 0.875rem; color: var(--text-muted); line-height: 1.6; }
+        .features-list li::before { content: "✓ "; color: var(--success); font-weight: bold; }
+        footer { margin-top: 3rem; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Jakarta EE 10 Servlet Web Application</h1>
+            <p class="subtitle">Experiment 07: Form Processing, Session Tracking (HttpSession), Request Filters &amp; Context Listeners</p>
+        </header>
+
+        <div class="grid">
+            <!-- Card 1: HelloServlet Request Dispatcher -->
+            <div class="card">
+                <h2>1. Parameter Extraction (HelloServlet)</h2>
+                <form action="hello" method="POST">
+                    <div class="form-group">
+                        <label for="studentName">Student Name:</label>
+                        <input type="text" id="studentName" name="name" value="Pankaj Sharma" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="department">Department / Branch:</label>
+                        <input type="text" id="department" name="department" value="Computer Science &amp; Engineering" required>
+                    </div>
+                    <button type="submit">Send POST Request to /hello</button>
+                </form>
+            </div>
+
+            <!-- Card 2: LoginServlet & Protected Home -->
+            <div class="card">
+                <h2>2. Session Authentication (LoginServlet)</h2>
+                <form action="login" method="POST">
+                    <div class="form-group">
+                        <label for="username">Username / Email:</label>
+                        <input type="text" id="username" name="username" value="pankaj@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password (demo: secret123):</label>
+                        <input type="password" id="password" name="password" value="secret123" required>
+                    </div>
+                    <button type="submit">Login &amp; Establish Session (/login)</button>
+                </form>
+            </div>
+
+            <!-- Card 3: Architecture Information -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>3. Active Architectural Modules &amp; Components</h2>
+                <ul class="features-list">
+                    <li><strong><code>HelloServlet</code> (<code>@WebServlet("/hello")</code>):</strong> Extracts form parameters, processes text encodings, and returns formatted HTML output.</li>
+                    <li><strong><code>LoginServlet</code> (<code>@WebServlet("/login")</code>):</strong> Authenticates credentials, creates an <code>HttpSession</code>, and sets session attributes.</li>
+                    <li><strong><code>HomeServlet</code> (<code>@WebServlet("/home")</code>):</strong> Protected user dashboard rendering user-specific session data.</li>
+                    <li><strong><code>AuthFilter</code> (<code>@WebFilter("/home")</code>):</strong> Intercepts requests to <code>/home</code>, redirecting unauthenticated users to <code>index.html</code>.</li>
+                    <li><strong><code>LoggingFilter</code> (<code>@WebFilter("/*")</code>):</strong> Logs incoming HTTP method, URI, remote IP, and processing latency in server logs.</li>
+                    <li><strong><code>AppListener</code> (<code>@WebListener</code>):</strong> Tracks container startup and shutdown via <code>ServletContextListener</code>.</li>
+                    <li><strong><code>SessionListener</code> (<code>@WebListener</code>):</strong> Tracks active user sessions via <code>HttpSessionListener</code>.</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer>
+            Advanced Java Programming Laboratory &bull; Developer: Pankaj Sharma &bull; All Rights Reserved &copy; 2026
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Compiled Java Class Files
+*.class
+
+# Build and Packaging Directories
+target/
+bin/
+out/
+
+# IDE Configuration Files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS Metadata
+.DS_Store
+Thumbs.db
+
+# Log and Temporary Files
+*.log
+*.tmp
